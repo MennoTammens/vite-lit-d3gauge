@@ -41,7 +41,7 @@ var newValue = 10
 gauges[0].updateGauge(newValue)
 ```
 
-For an example of using the gauge in a web page, see the demo.html file in the repository.
+For an example of using the gauge in a web page, see the index.html file in the repository.
 
 ## Options
 The following options can be set:
