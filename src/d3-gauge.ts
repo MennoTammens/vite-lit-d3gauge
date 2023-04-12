@@ -118,6 +118,12 @@ export class D3Gauge extends LitElement {
   unitsFont = this.defaultFonts
 
   @property({ type: Number })
+  unitsOffset: number = 0
+
+  @property({ type: Number })
+  fractionDigits: number = 0
+
+  @property({ type: Number })
   needleVal = this.minVal;
 
   //Define a linear scale to convert values to needle displacement angle (degrees)
@@ -267,7 +273,7 @@ export class D3Gauge extends LitElement {
                 )}
             </g>
             <g id="unitLabels-${this.id}">
-                <text x="${this.originX}" y="${this.originY + tickStartMaj}" font-size="${labelFontSize * 2.5}" text-anchor="middle" style="fill: ${this.unitsLabelCol}}; font-weight: bold;" font-family="${this.unitsFont}">${this.gaugeUnits}</text>
+                <text x="${this.originX}" y="${this.originY + tickStartMaj + this.unitsOffset}" font-size="${labelFontSize * 2.5}" text-anchor="middle" style="fill: ${this.unitsLabelCol}}; font-weight: bold;" font-family="${this.unitsFont}">${this.gaugeUnits}</text>
             </g>
             <g id="titleLabels-${this.id}">
                 <text x="${this.originX}" y="${this.originY * .75}" font-size="${labelFontSize * 1.5}" text-anchor="middle" style="fill: ${this.unitsLabelCol}}; font-weight: bold;" font-family="${this.unitsFont}">${this.title}</text>
@@ -309,7 +315,7 @@ export class D3Gauge extends LitElement {
         const i = interpolateNumber(oldVal, newVal)
 
         return (t: number) => {
-          unitsLabel.text(Math.round(i(t)) + " " + this.gaugeUnits);
+          unitsLabel.text(i(t).toFixed(this.fractionDigits) + " " + this.gaugeUnits);
         };
       });
   }

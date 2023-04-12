@@ -41,6 +41,8 @@ export declare class D3Gauge extends LitElement {
     defaultFonts: string;
     tickFont: string;
     unitsFont: string;
+    unitsOffset: number;
+    fractionDigits: number;
     needleVal: number;
     valueScale: ScaleLinear<number, number>;
     originX: number;
