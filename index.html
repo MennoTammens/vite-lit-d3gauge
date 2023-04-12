@@ -1,33 +1,45 @@
-<html>
-	<head>
-		<meta charset="utf-8">
-        <title>d3gauge demo</title>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D3 Gauge App</title>
+    <script type="module" src="/src/d3-gauge.ts"></script>
+  </head>
+  <body>
+    <d3-gauge id="gaugeBox"
+              title="Perf"
+              gaugeRadius="160"
+              minVal="0"
+              maxVal="120"
+              zeroTickAngle="50"
+              maxTickAngle="310"
+              needleVal="30"
+              tickSpaceMinVal="5"
+              tickSpaceMajVal="10"
+              edgeWidth="0.02"
+              tickEdgeGap="0.08"
+              outerEdgeCol="#000"
+              tickColMaj="#000"
+              needleCol="#000"
+              unitsFont="#000"
+              gaugeUnits="%"
+              ranges="[[25,50,&quot;red&quot;],
+                       [50,70,&quot;orange&quot;],
+                       [70,100,&quot;green&quot;]]"
+    >
+    </d3-gauge>
 
-		<script type="text/javascript" src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
-		<script type="text/javascript" src="d3gauge.js" charset="utf-8"></script>
-	</head>
-	<body>
-		<div id="gaugeBox"></div>
-	</body>
+    <script>
+      function update(last) {
+        var newValue = Math.min(110, Math.max(-10, last + Math.round(Math.random()*20-10)));
+        document.getElementById("gaugeBox").needleVal = newValue;
+        setTimeout(function(){ update(newValue) }, 1000);
+      }
 
-	<script > 
-		var gauges  = []
-		document.addEventListener("DOMContentLoaded", function(event) {
-			var opt = {
-				gaugeRadius : 160,
-                minVal : 0,
-                maxVal : 100,
-                needleVal : Math.round(30),
-                tickSpaceMinVal : 1,
-                tickSpaceMajVal : 10, 
-                divID : "gaugeBox", 
-                gaugeUnits : "%"
-			} 
-            
-            gauges[0] = new drawGauge(opt); 
-		})
-	</script>
+      update(30);
 
-
-
+    </script>
+  </body>
 </html>

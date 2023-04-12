@@ -1,397 +1,353 @@
-function drawGauge(opt) {
-    // Set defaults if not supplied
-    if(typeof opt === 'undefined')                  {var opt={}}
-    if(typeof opt.gaugeRadius === 'undefined')      {opt.gaugeRadius=200}
-    if(typeof opt.minVal === 'undefined')           {opt.minVal=0}
-    if(typeof opt.maxVal === 'undefined')           {opt.maxVal=100}
-    if(typeof opt.tickSpaceMinVal === 'undefined')  {opt.tickSpaceMinVal=1}
-    if(typeof opt.tickSpaceMajVal === 'undefined')  {opt.tickSpaceMajVal=10}
-    if(typeof opt.divID === 'undefined')            {opt.divID="vizBox"}
-    if(typeof opt.needleVal === 'undefined')        {opt.needleVal=60}
-    if(typeof opt.gaugeUnits === 'undefined')       {opt.gaugeUnits="%"}
-    
-    if(typeof opt.padding === 'undefined')          {opt.padding=0.05}
-    if(typeof opt.edgeWidth === 'undefined')        {opt.edgeWidth=0.05}
-    if(typeof opt.tickEdgeGap === 'undefined')      {opt.tickEdgeGap=0.05}
-    if(typeof opt.tickLengthMaj === 'undefined')    {opt.tickLengthMaj=0.15}
-    if(typeof opt.tickLengthMin === 'undefined')    {opt.tickLengthMin=0.05}
-    if(typeof opt.needleTickGap === 'undefined')    {opt.needleTickGap=0.05}
-    if(typeof opt.needleLengthNeg === 'undefined')  {opt.needleLengthNeg=0.2}
-    if(typeof opt.pivotRadius === 'undefined')      {opt.pivotRadius=0.1}
+import {html, svg, LitElement, PropertyValues} from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { scaleLinear, ScaleLinear, select, easeSinOut, interpolateString, interpolateNumber } from 'd3'
 
-    if(typeof opt.ticknessGaugeBasis === 'undefined') {opt.ticknessGaugeBasis=200}
-    if(typeof opt.needleWidth === 'undefined')      {opt.needleWidth=5}
-    if(typeof opt.tickWidthMaj === 'undefined')     {opt.tickWidthMaj=3}
-    if(typeof opt.tickWidthMin === 'undefined')     {opt.tickWidthMin=1}
-    if(typeof opt.labelFontSize === 'undefined')    {opt.labelFontSize=18}
-    if(typeof opt.zeroTickAngle === 'undefined')    {opt.zeroTickAngle=60}
-    if(typeof opt.maxTickAngle === 'undefined')     {opt.maxTickAngle=300}
-    if(typeof opt.zeroNeedleAngle === 'undefined')  {opt.zeroNeedleAngle=40}
-    if(typeof opt.maxNeedleAngle === 'undefined')   {opt.maxNeedleAngle=320}
+/**
+ * D3 Gauge Element
+ */
+@customElement('d3-gauge')
+export class D3Gauge extends LitElement {
+  protected createRenderRoot(): Element | ShadowRoot {
+    return super.createRenderRoot();
+  }
+  @property({ type: Number })
+  gaugeRadius = 200
 
-    if(typeof opt.tickColMaj === 'undefined')       {opt.tickColMaj = '#0099CC'}
-    if(typeof opt.tickColMin === 'undefined')       {opt.tickColMin = '#000'}
-    if(typeof opt.outerEdgeCol === 'undefined')     {opt.outerEdgeCol = '#0099CC'}
-    if(typeof opt.pivotCol === 'undefined')         {opt.pivotCol = '#999'}
-    if(typeof opt.innerCol === 'undefined')         {opt.innerCol = '#fff'}
-    if(typeof opt.unitsLabelCol === 'undefined')    {opt.unitsLabelCol = '#000'}
-    if(typeof opt.tickLabelCol === 'undefined')     {opt.tickLabelCol = '#000'}
-    if(typeof opt.needleCol === 'undefined')        {opt.needleCol = '#0099CC'}
+  @property({ type: Number })
+  minVal = 0
 
-    defaultFonts = '"Helvetica Neue", Helvetica, Arial, sans-serif'
-    if(typeof opt.tickFont === 'undefined')        {opt.tickFont = defaultFonts}
-    if(typeof opt.unitsFont === 'undefined')        {opt.unitsFont = defaultFonts}
+  @property({ type: Number })
+  maxVal = 100
+
+  @property({ type: Number })
+  tickSpaceMinVal = 1
+
+  @property({ type: Number })
+  tickSpaceMajVal = 10
+
+  @property({ type: String })
+  id = 'vizBox'
+
+  @property({ type: String })
+  gaugeUnits = '%'
+
+  @property({ type: Number })
+  padding = 0.05
+
+  @property({ type: Number })
+  edgeWidth = 0.05
+
+  @property({ type: Number })
+  tickEdgeGap = 0.05
+
+  @property({ type: Number })
+  tickLengthMaj = 0.15
+
+  @property({ type: Number })
+  tickLengthMin = 0.05
+
+  @property({ type: Number })
+  needleTickGap = 0.05
+
+  @property({ type: Number })
+  needleLengthNeg = 0.2
+
+  @property({ type: Number })
+  pivotRadius = 0.1
+
+  @property({ type: Number })
+  ticknessGaugeBasis = 200
+
+  @property({ type: Number })
+  needleWidth = 5
+
+  @property({ type: Number })
+  tickWidthMaj = 3
+
+  @property({ type: Number })
+  tickWidthMin = 1
+
+  @property({ type: Number })
+  labelFontSize = 18
+
+  @property({ type: Number })
+  zeroTickAngle: number = 60
+
+  @property({ type: Number })
+  maxTickAngle = 300
+
+  @property({ type: Number })
+  zeroNeedleAngle = 40
+
+  @property({ type: Number })
+  maxNeedleAngle = 320
+
+  @property({ type: String })
+  tickColMaj = '#0099CC'
+
+  @property({ type: String })
+  tickColMin = '#000'
+
+  @property({ type: String })
+  outerEdgeCol = '#0099CC'
+
+  @property({ type: String })
+  pivotCol = '#999'
+
+  @property({ type: String })
+  innerCol = '#fff'
+
+  @property({ type: String })
+  unitsLabelCol = '#000'
+
+  @property({ type: String })
+  tickLabelCol = '#000'
+
+  @property({ type: String })
+  needleCol = '#0099CC'
+
+  @property({ type: Array })
+  ranges = []
+
+  defaultFonts = '"Helvetica Neue", Helvetica, Arial, sans-serif'
+
+  @property({ type: String })
+  tickFont = this.defaultFonts
+
+  @property({ type: String })
+  unitsFont = this.defaultFonts
+
+  @property({ type: Number })
+  needleVal = this.minVal;
+
+  //Define a linear scale to convert values to needle displacement angle (degrees)
+  valueScale: ScaleLinear<number, number> = scaleLinear()
+      .domain([this.minVal, this.maxVal])
+      .range([this.zeroTickAngle, this.maxTickAngle]);
+  originX = this.gaugeRadius;
+  originY = this.gaugeRadius;
+
+  shouldUpdate(changedProperties: PropertyValues) {
+    if(changedProperties.size === 1 && changedProperties.has('needleVal')) {
+      this.updated(changedProperties);
+      return false;
+    }
+    return true;
+  }
+
+  render() {
+    this.originX = this.gaugeRadius;
+    this.originY = this.gaugeRadius;
+    this.valueScale = scaleLinear()
+        .domain([this.minVal, this.maxVal])
+        .range([this.zeroTickAngle, this.maxTickAngle]);
 
     // Calculate absolute values
-    opt.padding = opt.padding * opt.gaugeRadius,
-    opt.edgeWidth = opt.edgeWidth * opt.gaugeRadius,
-    opt.tickEdgeGap = opt.tickEdgeGap * opt.gaugeRadius,
-    opt.tickLengthMaj = opt.tickLengthMaj * opt.gaugeRadius,
-    opt.tickLengthMin = opt.tickLengthMin * opt.gaugeRadius,
-    opt.needleTickGap = opt.needleTickGap * opt.gaugeRadius,
-    opt.needleLengthNeg = opt.needleLengthNeg * opt.gaugeRadius,
-    opt.pivotRadius = opt.pivotRadius * opt.gaugeRadius;
+    const padding = this.padding * this.gaugeRadius;
+    const edgeWidth = this.edgeWidth * this.gaugeRadius;
+    const tickEdgeGap = this.tickEdgeGap * this.gaugeRadius;
+    const tickLengthMaj = this.tickLengthMaj * this.gaugeRadius;
+    const tickLengthMin = this.tickLengthMin * this.gaugeRadius;
+    const needleTickGap = this.needleTickGap * this.gaugeRadius;
+    const needleLengthNeg = this.needleLengthNeg * this.gaugeRadius;
+    const pivotRadius = this.pivotRadius * this.gaugeRadius;
 
-    opt.needleWidth = opt.needleWidth * (opt.gaugeRadius/opt.ticknessGaugeBasis),
-    opt.tickWidthMaj = opt.tickWidthMaj * (opt.gaugeRadius/opt.ticknessGaugeBasis),
-    opt.tickWidthMin = opt.tickWidthMin * (opt.gaugeRadius/opt.ticknessGaugeBasis),
-    opt.labelFontSize = opt.labelFontSize * (opt.gaugeRadius/opt.ticknessGaugeBasis);
-    
+    const needleWidth = this.needleWidth * (this.gaugeRadius/this.ticknessGaugeBasis);
+    const tickWidthMaj = this.tickWidthMaj * (this.gaugeRadius/this.ticknessGaugeBasis);
+    const tickWidthMin = this.tickWidthMin * (this.gaugeRadius/this.ticknessGaugeBasis);
+    let labelFontSize = this.labelFontSize * (this.gaugeRadius/this.ticknessGaugeBasis);
 
     //Calculate required values
-    var needleLengthPos = opt.gaugeRadius - opt.padding - opt.edgeWidth - opt.tickEdgeGap - opt.tickLengthMaj - opt.needleTickGap,
-        needlePathLength = opt.needleLengthNeg + needleLengthPos,
-        needlePathStart = opt.needleLengthNeg * (-1),
-        tickStartMaj = opt.gaugeRadius - opt.padding - opt.edgeWidth - opt.tickEdgeGap - opt.tickLengthMaj,
-        tickStartMin = opt.gaugeRadius - opt.padding - opt.edgeWidth - opt.tickEdgeGap - opt.tickLengthMin,
-        labelStart = tickStartMaj - opt.labelFontSize,
-        innerEdgeRadius = opt.gaugeRadius - opt.padding - opt.edgeWidth,
-        outerEdgeRadius = opt.gaugeRadius - opt.padding,
-        originX = opt.gaugeRadius,
-        originY = opt.gaugeRadius;
-    
-    if(opt.labelFontSize < 6){opt.labelFontSize = 0}
-        
-    //Define a linear scale to convert values to needle displacement angle (degrees)
-    var valueScale = d3.scaleLinear()
-            .domain([opt.minVal, opt.maxVal])
-            .range([opt.zeroTickAngle, opt.maxTickAngle]);
-    
+    const needleLengthPos = this.gaugeRadius - padding - edgeWidth - tickEdgeGap - tickLengthMaj - needleTickGap;
+    const needlePathLength = needleLengthNeg + needleLengthPos;
+    const needlePathStart = needleLengthNeg * (-1);
+    const outerTickRadius = this.gaugeRadius - padding - edgeWidth - tickEdgeGap;
+    const tickStartMaj = outerTickRadius - tickLengthMaj;
+    const tickStartMin = outerTickRadius - tickLengthMin;
+    const labelStart = tickStartMaj - labelFontSize;
+    const innerEdgeRadius = this.gaugeRadius - padding - edgeWidth;
+    const outerEdgeRadius = this.gaugeRadius - padding;
+
+    if(labelFontSize < 6) { labelFontSize = 0 }
+
+    const rangePaths = this.ranges.map(([startVal, endVal, color]) => {
+      const startAngle = this.valueScale(startVal) - 180;
+      const endAngle = this.valueScale(endVal) - 180;
+      const arc = describeArc(this.originX, this.originY, outerTickRadius, tickStartMaj, startAngle, endAngle);
+      return svg`<path d="${arc}" style="stroke: none; fill: ${color};"></path>`
+    })
+
     //Calculate tick mark angles (degrees)
-    var counter = 0,
-        tickAnglesMaj = [],
-        tickAnglesMin = [],
-        tickSpacingMajDeg = valueScale(opt.tickSpaceMajVal) - valueScale(0),
-        tickSpacingMinDeg = valueScale(opt.tickSpaceMinVal) - valueScale(0);
-    
-    for (var i = opt.zeroTickAngle; i <= opt.maxTickAngle; i = i + tickSpacingMajDeg)
-        { 
-            tickAnglesMaj.push(opt.zeroTickAngle + (tickSpacingMajDeg * counter))
-            counter++
-        }
-    
+    const tickAnglesMaj: number[] = [];
+    const tickAnglesMin: number[] = [];
+    const tickSpacingMajDeg = this.valueScale(this.tickSpaceMajVal) - this.valueScale(0);
+    const tickSpacingMinDeg = this.valueScale(this.tickSpaceMinVal) - this.valueScale(0);
+    const tickLabelText: string[] = [];
+
+    let counter = 0;
+    //Calculate major tick and tick mark label text
+    for (let i = this.zeroTickAngle; i <= this.maxTickAngle; i = i + tickSpacingMajDeg) {
+      tickAnglesMaj.push(this.zeroTickAngle + (tickSpacingMajDeg * counter))
+      tickLabelText.push(`${this.minVal + (this.tickSpaceMajVal * counter)}`)
+      counter++
+    }
     counter = 0
-    for (var i=opt.zeroTickAngle; i <= opt.maxTickAngle; i = i + tickSpacingMinDeg)
-        { 
-            //Check for an existing major tick angle
-            var exists = 0
-            tickAnglesMaj.forEach(function(d){
-                if((opt.zeroTickAngle + (tickSpacingMinDeg * counter))==d){exists=1}
-            })
-            
-            if(exists == 0){tickAnglesMin.push(opt.zeroTickAngle + (tickSpacingMinDeg * counter))}
-            counter++
-        }
+    for (let i=this.zeroTickAngle; i <= this.maxTickAngle; i = i + tickSpacingMinDeg) {
+      tickAnglesMin.push(this.zeroTickAngle + (tickSpacingMinDeg * counter))
+      counter++
+    }
 
-    
-    //Calculate major tick mark label text
-    counter=0
-    var tickLabelText=[];
-    
-    for (var i = opt.zeroTickAngle; i <= opt.maxTickAngle; i = i + tickSpacingMajDeg)
-        { 
-            tickLabelText.push(opt.minVal + (opt.tickSpaceMajVal * counter))
-            counter++
-        }    
-    
     //Add the svg content holder to the visualisation box element in the document (vizbox)
-    var svgWidth=opt.gaugeRadius * 2,
-        svgHeight=opt.gaugeRadius * 2;
-    
-    d3.select("#" + opt.divID)
-        .append("svg")
-        .attr("id", "SVGbox-" + opt.divID)
-        .attr("width", svgWidth)
-        .attr("height", svgHeight)
-        .attr({'xmlns': 'http://www.w3.org/2000/svg','xmlns:xlink': 'http://www.w3.org/1999/xlink'});
-    
-    var svg = d3.select("#SVGbox-" + opt.divID);
+    const svgWidth = this.gaugeRadius * 2;
+    const svgHeight = this.gaugeRadius * 2;
 
-    //Draw the circles that make up the edge of the gauge
-    var circleGroup = svg.append("svg:g")
-            .attr("id","circles")
-    var outerC = circleGroup.append("svg:circle")
-            .attr("cx", originX)
-            .attr("cy", originY)
-            .attr("r", outerEdgeRadius)
-            .style("fill", opt.outerEdgeCol)
-            .style("stroke", "none");
-    var innerC = circleGroup.append("svg:circle")
-            .attr("cx", originX)
-            .attr("cy", originY)
-            .attr("r", innerEdgeRadius)
-            .style("fill", opt.innerCol)
-            .style("stroke", "none");
-    
-    //Draw the circle for the needle 'pivot'
-    var pivotC = circleGroup.append("svg:circle")
-            .attr("cx", originX)
-            .attr("cy", originY)
-            .attr("r", opt.pivotRadius)
-            .style("fill", opt.pivotCol)
-            .style("stroke", "none");
-    
-    
-    //Define two functions for calculating the coordinates of the major & minor tick mark paths
-    tickCalcMaj = function() {  
-        function pathCalc(d,i) {
-            //Offset the tick mark angle so zero is vertically down, then convert to radians
-            var tickAngle = d + 90,
-                tickAngleRad = dToR(tickAngle);
+    const pathTickMin = tickAnglesMin.map(d => {
+      //Offset the tick mark angle so zero is vertically down, then convert to radians
+      const tickAngle = d + 90;
+      const tickAngleRad = dToR(tickAngle);
 
-            var y1 = originY + (tickStartMaj * Math.sin(tickAngleRad)),
-                y2 = originY + ((tickStartMaj + opt.tickLengthMaj) * Math.sin(tickAngleRad)),
-                x1 = originX + (tickStartMaj * Math.cos(tickAngleRad)),
-                x2 = originX + ((tickStartMaj + opt.tickLengthMaj) * Math.cos(tickAngleRad)),
-                
-                lineData = [{"x": x1, "y": y1}, {"x": x2, "y": y2}];
+      const y1 = this.originY + (tickStartMin * Math.sin(tickAngleRad));
+      const y2 = this.originY + ((tickStartMin + tickLengthMin) * Math.sin(tickAngleRad));
+      const x1 = this.originX + (tickStartMin * Math.cos(tickAngleRad));
+      const x2 = this.originX + ((tickStartMin + tickLengthMin) * Math.cos(tickAngleRad));
 
-            //Use a D3.JS path generator
-            var lineFunc = d3.line()
-                .x(function(d) {return d.x;})
-                .y(function(d) {return d.y;});
-
-            var lineSVG = lineFunc(lineData)
-
-            return lineSVG
-        }
-        return pathCalc;
-    };
-    
-    tickCalcMin = function() {  
-        function pathCalc(d,i) {
-            //Offset the tick mark angle so zero is vertically down, then convert to radians
-            var tickAngle = d + 90,
-                tickAngleRad = dToR(tickAngle);
-
-            var y1 = originY + (tickStartMin * Math.sin(tickAngleRad)),
-                y2 = originY + ((tickStartMin + opt.tickLengthMin) * Math.sin(tickAngleRad)),
-                x1 = originX + (tickStartMin * Math.cos(tickAngleRad)),
-                x2 = originX + ((tickStartMin + opt.tickLengthMin) * Math.cos(tickAngleRad)),
-                
-                lineData = [{"x": x1, "y": y1}, {"x": x2, "y": y2}];
-
-            //Use a D3.JS path generator
-            var lineFunc=d3.line()
-                .x(function(d) {return d.x;})
-                .y(function(d) {return d.y;});
-
-            var lineSVG = lineFunc(lineData)
-
-            return lineSVG
-        }
-        return pathCalc;
-    };    
-    
-   var  pathTickMaj = tickCalcMaj(),
-        pathTickMin = tickCalcMin();
-
-    
-    //Add a group to hold the ticks
-    var ticks = svg.append("svg:g")
-                .attr("id","tickMarks")
-    
-    //Add a groups for major and minor ticks (minor first, so majors overlay)
-    var ticksMin = ticks.append("svg:g")
-                .attr("id","minorTickMarks")
-    var ticksMaj = ticks.append("svg:g")
-                .attr("id","majorTickMarks")
-
-    
-    //Draw the tick marks 
-    var tickMin = ticksMin.selectAll("path")
-                .data(tickAnglesMin)
-                .enter().append("path")
-                .attr("d", pathTickMin)
-                .style("stroke", opt.tickColMin)
-                .style("stroke-width", opt.tickWidthMin+"px");    
-    var tickMaj = ticksMaj.selectAll("path")
-                .data(tickAnglesMaj)
-                .enter().append("path")
-                .attr("d", pathTickMaj)
-                .style("stroke", opt.tickColMaj)
-                .style("stroke-width", opt.tickWidthMaj+"px");  
-    
-    
-    //Define functions to calcuate the positions of the labels for the tick marks
-    function labelXcalc(d,i){
-        var tickAngle = d+90,
-            tickAngleRad = dToR(tickAngle),
-            labelW = opt.labelFontSize / (tickLabelText[i].toString().length / 2)
-            x1 = originX + ((labelStart - labelW) * Math.cos(tickAngleRad));
-        return x1
-    }
-    function labelYcalc(d,i){
-        var tickAngle=d+90,
-            tickAngleRad=dToR(tickAngle),
-            y1 = originY + ((labelStart) * Math.sin(tickAngleRad)) + (opt.labelFontSize/2);        
-        return y1
-    }    
-    
-    //Add labels for major tick marks
-    var tickLabels = svg.append("svg:g")
-                .attr("id", "tickLabels")
-    var tickLabel = tickLabels.selectAll("text")
-                .data(tickAnglesMaj)
-                .enter().append("text")
-                .attr("x",function(d,i){return labelXcalc(d,i)})
-                .attr("y",function(d,i){return labelYcalc(d,i)})    
-                .attr("font-size", opt.labelFontSize) 
-                .attr("text-anchor", "middle")
-                .style("fill", opt.tickLabelCol)
-                .style("font-weight", "bold")
-                .attr("font-family", opt.tickFont)
-                .text(function(d,i) {return tickLabelText[i]})
-    
-    //Add label for units
-    var unitLabels = svg.append("svg:g")
-                .attr("id", "unitLabels")
-    var unitsLabel = unitLabels.selectAll("text")
-                .data([0])
-                .enter().append("text")
-                .attr("x",function(d,i){return labelXcalc(d,i)})
-                .attr("y",function(d,i){return labelYcalc(d,i)})    
-                .attr("font-size", opt.labelFontSize * 1.5) 
-                .attr("text-anchor", "middle")
-                .style("fill", opt.unitsLabelCol)
-                .style("font-weight", "bold")
-                .attr("font-family", opt.unitsFont)
-                .text(opt.gaugeUnits)           
-
-    //Draw needle
-    var needleAngle = [opt.zeroNeedleAngle]
-    
-    //Define a function for calculating the coordinates of the needle paths (see tick mark equivalent)
-    needleCalc = function() {   
-            function pathCalc(d,i) {
-                var nAngleRad = dToR(d + 90)
-                
-                var y1 = originY + (needlePathStart * Math.sin(nAngleRad)),
-                    y2 = originY + ((needlePathStart + needlePathLength) * Math.sin(nAngleRad)),
-                    x1 = originX + (needlePathStart * Math.cos(nAngleRad)),
-                    x2 = originX + ((needlePathStart + needlePathLength) * Math.cos(nAngleRad)),
-                    
-                    lineData = [{"x": x1, "y": y1}, {"x": x2, "y": y2}];
-                
-                var lineFunc=d3.line()
-                    .x(function(d) {return d.x;})
-                    .y(function(d) {return d.y;});
-                
-                var lineSVG = lineFunc(lineData)
-                return lineSVG 
-            }
-        return pathCalc;
-    };
-    
-    var pathNeedle = needleCalc();
-
-    //Add a group to hold the needle path
-    var needleGroup = svg.append("svg:g")
-        .attr("id","needle")
-    
-    //Draw the needle path
-    var needlePath = needleGroup.selectAll("path")
-        .data(needleAngle)
-        .enter().append("path")
-        .attr("d", pathNeedle)
-        .style("stroke", opt.needleCol)
-        .style("stroke-width", opt.needleWidth + "px");  
-    
-    
-    //Animate the transistion of the needle to its starting value
-    needlePath.transition()
-        .duration(1000)
-        //.delay(0)
-        .ease(d3.easeElasticOut,1,0.9)
-        //.attr("transform", function(d) 
-        .attrTween("transform", function(d,i,a)
-        {
-            needleAngle=valueScale(opt.needleVal)
-            
-            //Check for min/max ends of the needle
-            if (needleAngle > opt.maxTickAngle){needleAngle = opt.maxNeedleAngle}
-            if (needleAngle < opt.zeroTickAngle){needleAngle = opt.zeroNeedleAngle}
-            var needleCentre = originX + "," + originY,
-                needleRot = needleAngle - opt.zeroNeedleAngle
-            return d3.interpolateString("rotate(0," + needleCentre + ")", "rotate(" + needleRot + "," + needleCentre + ")")
-              
-        });
-
-    unitsLabel.transition()
-    .duration(1000)
-    .ease(d3.easeElasticOut,1,0.9)
-    .tween("text", function(d) {
-        var i = d3.interpolateString(opt.minVal, opt.needleVal)
-
-        return function(t) {
-            unitsLabel.text(Math.round(i(t)) + " " + opt.gaugeUnits);
-        };
+      return `M${x1},${y1}L${x2},${y2}`;
     });
-    
-    // Function to update the gauge value
-    this.updateGauge=function(newVal) {
-        //Set default values if necessary
-        if(newVal == undefined)(opt.minVal)
 
-        //Animate the transistion of the needle to its new value
-        var needlePath = needleGroup.selectAll("path"),
-            oldVal = opt.needleVal
-        needlePath.transition()
-            .duration(1000)
-            .ease(d3.easeElasticOut,1,0.9)
-            .attrTween("transform", function(d,i,a)
-            {
-                needleAngleOld = valueScale(oldVal) - opt.zeroNeedleAngle
-                needleAngleNew = valueScale(newVal) - opt.zeroNeedleAngle
+    const pathTickMaj = tickAnglesMaj.map(d => {
+      //Offset the tick mark angle so zero is vertically down, then convert to radians
+      const tickAngle = d + 90;
+      const tickAngleRad = dToR(tickAngle);
 
-                //Check for min/max ends of the needle
-                if (needleAngleOld + opt.zeroNeedleAngle > opt.maxTickAngle){needleAngleOld = opt.maxNeedleAngle - opt.zeroNeedleAngle}
-                if (needleAngleOld + opt.zeroNeedleAngle < opt.zeroTickAngle){needleAngleOld = 0}
-                if (needleAngleNew + opt.zeroNeedleAngle > opt.maxTickAngle){needleAngleNew = opt.maxNeedleAngle - opt.zeroNeedleAngle}
-                if (needleAngleNew + opt.zeroNeedleAngle < opt.zeroTickAngle){needleAngleNew = 0}
-                var needleCentre = originX+","+originY
-                return d3.interpolateString("rotate(" + needleAngleOld + "," + needleCentre + ")", "rotate(" + needleAngleNew + "," + needleCentre + ")")
+      const y1 = this.originY + (tickStartMaj * Math.sin(tickAngleRad));
+      const y2 = this.originY + ((tickStartMaj + tickLengthMaj) * Math.sin(tickAngleRad));
+      const x1 = this.originX + (tickStartMaj * Math.cos(tickAngleRad));
+      const x2 = this.originX + ((tickStartMaj + tickLengthMaj) * Math.cos(tickAngleRad));
 
-            });
-        
-        unitsLabel.transition()
-            .duration(1000)
-            .ease(d3.easeElasticOut,1,0.9)
-            .tween("text", function(d) {
-                var i = d3.interpolateString(oldVal, newVal)
-                
-                return function(t) {
-                    unitsLabel.text(Math.round(i(t)) + " " + opt.gaugeUnits);
-                };
-        });
-        
-        //Update the current value
-        opt.needleVal = newVal
-    }
+      return `M${x1},${y1}L${x2},${y2}`;
+    });
+
+    //Define functions to calculate the positions of the labels for the tick marks
+    const tickLabels = tickAnglesMaj.map((d,i) => {
+      const tickAngle = d+90;
+      const tickAngleRad = dToR(tickAngle);
+      const labelW = labelFontSize / (tickLabelText[i].toString().length / 2)
+      const x = this.originX + ((labelStart - labelW) * Math.cos(tickAngleRad));
+      const y = this.originY + ((labelStart) * Math.sin(tickAngleRad)) + (labelFontSize/2);
+      return {x,y,l:tickLabelText[i]}
+    });
+
+    const needleAngle = this.zeroNeedleAngle;
+    const nAngleRad = dToR(needleAngle + 90)
+    const y1 = this.originY + (needlePathStart * Math.sin(nAngleRad));
+    const y2 = this.originY + ((needlePathStart + needlePathLength) * Math.sin(nAngleRad));
+    const x1 = this.originX + (needlePathStart * Math.cos(nAngleRad));
+    const x2 = this.originX + ((needlePathStart + needlePathLength) * Math.cos(nAngleRad));
+    const pathNeedle = `M${x1},${y1}L${x2},${y2}`;
+
+    return html`
+        <svg id="SVGbox-${this.id}" width="${svgWidth}" height="${svgHeight}">
+            <g id="circles-${this.id}">
+                <circle cx="${this.originX}" cy="${this.originY}" r="${outerEdgeRadius}" style="fill: ${this.outerEdgeCol}; stroke: none;"/>
+                <circle cx="${this.originX}" cy="${this.originY}" r="${innerEdgeRadius}" style="fill: ${this.innerCol}; stroke: none;"/>
+                ${rangePaths}
+                <circle cx="${this.originX}" cy="${this.originY}" r="${pivotRadius}" style="fill: ${this.pivotCol}; stroke: none;"/>
+            </g>
+            <g id="tickMarks-${this.id}">
+                <g id="minorTickMarks-${this.id}">
+                    ${pathTickMin.map(p => svg`<path d="${p}" style="stroke: ${this.tickColMin}; stroke-width: ${tickWidthMin}px;"></path>`)}
+                </g>
+                <g id="majorTickMarks-${this.id}">
+                    ${pathTickMaj.map(p => svg`<path d="${p}" style="stroke: ${this.tickColMaj}; stroke-width: ${tickWidthMaj}px;"></path>`)}
+                </g>
+            </g>
+            <g id="tickLabels-${this.id}">
+                ${tickLabels.map(({x, y, l}) => 
+                   svg`<text x="${x}" y="${y}" font-size="${labelFontSize}" text-anchor="middle" style="fill: ${this.tickLabelCol}; font-weight: bold;" font-family="${this.tickFont}">${l}</text>`
+                )}
+            </g>
+            <g id="unitLabels-${this.id}">
+                <text x="${this.originX}" y="${this.originY + tickStartMaj}" font-size="${labelFontSize * 2.5}" text-anchor="middle" style="fill: ${this.unitsLabelCol}}; font-weight: bold;" font-family="${this.unitsFont}">${this.gaugeUnits}</text>
+            </g>
+            <g id="titleLabels-${this.id}">
+                <text x="${this.originX}" y="${this.originY * .75}" font-size="${labelFontSize * 1.5}" text-anchor="middle" style="fill: ${this.unitsLabelCol}}; font-weight: bold;" font-family="${this.unitsFont}">${this.title}</text>
+            </g>
+            <g id="needle-${this.id}">
+                <path d="${pathNeedle}" style="stroke: ${this.needleCol}; stroke-width: ${needleWidth}"></path>
+            </g>
+      </svg>
+    `
+  }
+
+  updated(changedProperties: PropertyValues) {
+    const needleGroup = select(this.renderRoot.querySelector(`#needle-${this.id}`));
+    const needlePath = needleGroup.selectAll("path");
+    const { valueScale, zeroNeedleAngle, maxNeedleAngle, zeroTickAngle, maxTickAngle, originX, originY } = this;
+    const oldVal = changedProperties.get('needleVal') || this.minVal;
+    const newVal = this.needleVal;
+    needlePath.transition()
+      .duration(300)
+      .ease(easeSinOut)
+      .attrTween("transform", () => {
+        let needleAngleOld = valueScale(oldVal) - zeroNeedleAngle;
+        let needleAngleNew = valueScale(newVal) - zeroNeedleAngle;
+
+        //Check for min/max ends of the needle
+        if (needleAngleOld + zeroNeedleAngle > maxTickAngle){needleAngleOld = maxNeedleAngle - zeroNeedleAngle}
+        if (needleAngleOld + zeroNeedleAngle < zeroTickAngle){needleAngleOld = 0}
+        if (needleAngleNew + zeroNeedleAngle > maxTickAngle){needleAngleNew = maxNeedleAngle - zeroNeedleAngle}
+        if (needleAngleNew + zeroNeedleAngle < zeroTickAngle){needleAngleNew = 0}
+        const needleCentre = originX+","+originY
+        return interpolateString("rotate(" + needleAngleOld + "," + needleCentre + ")", "rotate(" + needleAngleNew + "," + needleCentre + ")")
+      });
+    const unitLabels = select(this.renderRoot.querySelector(`#unitLabels-${this.id}`));
+    const unitsLabel = unitLabels.selectAll("text");
+    unitsLabel.transition()
+      .duration(300)
+      .ease(easeSinOut)
+      .tween("text", () => {
+        const i = interpolateNumber(oldVal, newVal)
+
+        return (t: number) => {
+          unitsLabel.text(Math.round(i(t)) + " " + this.gaugeUnits);
+        };
+      });
+  }
 }
 
-function dToR(angleDeg){
-    //Turns an angle in degrees to radians
-    var angleRad = angleDeg * (Math.PI / 180); 
-    return angleRad;
+function dToR(angleDeg: number){
+  //Turns an angle in degrees to radians
+  return angleDeg * (Math.PI / 180);
+}
+
+function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
+  const angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
+
+  return {
+    x: centerX + (radius * Math.cos(angleInRadians)),
+    y: centerY + (radius * Math.sin(angleInRadians))
+  };
+}
+
+function describeArc(x: number, y: number, outerRadius: number, innerRadius: number, startAngle: number, endAngle: number){
+  const startOuter = polarToCartesian(x, y, outerRadius, endAngle);
+  const endOuter = polarToCartesian(x, y, outerRadius, startAngle);
+  const startInner = polarToCartesian(x, y, innerRadius, endAngle);
+  const endInner = polarToCartesian(x, y, innerRadius, startAngle);
+
+  const arcSweep = endAngle - startAngle <= 180 ? "0" : "1";
+
+  return [
+    "M", startOuter.x, startOuter.y,
+    "A", outerRadius, outerRadius, 0, arcSweep, 0, endOuter.x, endOuter.y,
+    "L", endInner.x,endInner.y,
+    "A", innerRadius, innerRadius, 0, arcSweep, 1, startInner.x, startInner.y,
+    "Z"
+  ].join(" ");
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'd3-gauge': D3Gauge
+  }
 }
